@@ -1,0 +1,141 @@
+<!DOCTYPE html><html lang="bn"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<title>গ্রুপ তহবিল</title>
+<style>
+:root{--p:#0f766e;--bg:#f1f5f4;--c:#fff;--t:#1f2937;--m:#6b7280;--g:#15803d;--r:#b91c1c;--b:#e5e7eb}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1716;--c:#17211f;--t:#e5e7eb;--m:#9ca3af;--b:#2a3836;--g:#4ade80;--r:#f87171}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,"Noto Sans Bengali",sans-serif;background:var(--bg);color:var(--t);padding-bottom:70px}
+header{background:var(--p);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+header b{font-size:17px}header button{background:#ffffff33;color:#fff;border:0;border-radius:8px;padding:6px 12px}
+main{max-width:760px;margin:auto;padding:12px}
+.card{background:var(--c);border:1px solid var(--b);border-radius:12px;padding:14px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid .card{margin:0}
+.k{color:var(--m);font-size:12px}.v{font-size:22px;font-weight:700}.pos{color:var(--g)}.neg{color:var(--r)}
+h3{margin:0 0 8px;font-size:15px}
+input,select,button,textarea{font:inherit;padding:9px;border:1px solid var(--b);border-radius:8px;background:var(--c);color:var(--t);width:100%;margin:3px 0}
+button.pri{background:var(--p);color:#fff;border:0;font-weight:600}button.sm{width:auto;padding:3px 9px;font-size:12px}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--b);text-align:left;white-space:nowrap}
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--c);border-top:1px solid var(--b);display:flex;overflow-x:auto;z-index:5}
+nav button{flex:1;min-width:76px;border:0;border-radius:0;margin:0;background:none;font-size:12px;padding:10px 4px}nav button.on{color:var(--p);font-weight:700;border-top:3px solid var(--p)}
+.login{max-width:340px;margin:12vh auto;text-align:center}.msg{color:var(--r);font-size:13px}.tag{font-size:11px;padding:1px 7px;border-radius:9px;background:var(--b)}
+</style></head><body><div id="app"></div><input type="file" id="fi" hidden>
+<script type="module">
+const MN=["জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল","মে","জুন","জুলাই","আগস্ট","সেপ্টেম্বর","অক্টোবর","নভেম্বর","ডিসেম্বর"];
+const $=s=>document.querySelector(s),f=n=>Number(n||0).toLocaleString("bn-BD"),sum=(a,k)=>a.reduce((s,x)=>s+(+x[k]||0),0);
+const nowYM=new Date().toISOString().slice(0,7),today=new Date().toISOString().slice(0,10);
+const lab=y=>MN[+y.slice(5)-1]+" "+(+y.slice(0,4)).toLocaleString("bn-BD",{useGrouping:false});
+const nx=y=>{let[a,b]=y.split("-").map(Number);b++;if(b>12){b=1;a++}return a+"-"+String(b).padStart(2,"0")};
+const S={user:null,admin:false,members:[],tx:[],common:[],sum:null,tab:"home",err:""};
+
+const rateAt=(m,y)=>{let r=m.rate0;[...(m.changes||[])].sort((a,b)=>a.from<b.from?-1:1).forEach(c=>{if(c.from<=y)r=c.rate});return r};
+function ledger(m){
+  const pays=S.tx.filter(t=>t.kind=="pay"&&t.memberId==m.id),wv=S.tx.filter(t=>t.kind=="waiver"&&t.memberId==m.id),gw=new Set(S.common.filter(c=>c.kind=="gwaiver").map(c=>c.ym));
+  let last=nowYM;pays.forEach(p=>{if(p.ym>last)last=p.ym});
+  let bal=sum(pays.filter(p=>p.ym<m.join),"amount");const rows=[];
+  for(let y=m.join;y<=last;y=nx(y)){
+    const w=sum(wv.filter(x=>x.ym==y),"amount"),due=gw.has(y)?0:Math.max(0,rateAt(m,y)-w),paid=sum(pays.filter(p=>p.ym==y),"amount");
+    bal+=paid-due;rows.push({ym:y,due,paid,bal})}
+  return{rows,bal}}
+
+// ---------- offline data ----------
+const K="fund_db",ADMIN_H="095a44423af0030332c937566b552218f9aee7aca1daae7351cacd8b8ecc84c2";
+let DB=JSON.parse(localStorage[K]||"null")||{members:[],tx:[],common:[],admin:null};
+const persist=()=>localStorage[K]=JSON.stringify(DB),uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const commit=()=>{persist();S.members=DB.members;S.tx=DB.tx;S.common=DB.common;render()};
+const sha=async s=>[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+const b64=u=>{let s="";u.forEach(c=>s+=String.fromCharCode(c));return btoa(s)},ub=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function key(pw,salt){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"},k,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+async function enc(o,pw){const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12)),k=await key(pw,salt);
+  return[salt,iv,new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(JSON.stringify(o))))].map(b64).join(".")}
+async function dec(s,pw){const[a,b,c]=s.split(".").map(ub);return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b},await key(pw,a),c)))}
+function summary(){
+  const pay=sum(S.tx.filter(t=>t.kind=="pay"),"amount"),ex=sum(S.common.filter(c=>c.kind=="extra"),"amount"),out=sum(S.common.filter(c=>c.kind=="expense"),"amount");
+  return{balance:pay+ex-out,totalIn:pay+ex,totalOut:out,monthly:pay,extra:ex,members:S.members.length}}
+async function share(name,text,type){const file=new File([text],name,{type});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]});return}catch(e){if(e.name=="AbortError")return}}
+  const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;a.click()}
+function open_(d,pw){S.user=d.m.loginId;S.admin=false;S.pw=pw;S.members=[d.m];S.tx=d.tx;S.common=d.common;S.sum=d.sum;S.stamp=d.stamp;S.tab="home";S.err=""}
+// ---------- views ----------
+const nameOf=id=>(S.members.find(m=>m.id==id)||{}).name||"?";
+const commonList=()=>{const l=S.common.filter(c=>c.kind!="gwaiver").sort((a,b)=>(b.date||"")>(a.date||"")?1:-1).slice(0,30);
+  return`<div class="card"><h3>অতিরিক্ত তহবিল ও খরচ</h3><div class="tbl"><table>${l.map(c=>`<tr><td>${c.date||""}</td><td>${c.kind=="expense"?"খরচ":"অতিরিক্ত জমা"}</td><td>${c.title||""}</td><td class="${c.kind=="expense"?"neg":"pos"}">${f(c.amount)}</td>${S.admin?`<td><button class="sm" data-del="common/${c.id}">✕</button></td>`:""}</tr>`).join("")||"<tr><td>কিছু নেই</td></tr>"}</table></div></div>`};
+const ledTable=m=>{const L=ledger(m);return`<div class="card"><h3>${m.name} — মাসওয়ারি হিসাব</h3><div class="tbl"><table><tr><th>মাস</th><th>প্রযোজ্য</th><th>জমা</th><th>ব্যালেন্স</th></tr>${[...L.rows].reverse().map(r=>`<tr><td>${lab(r.ym)}</td><td>${f(r.due)}</td><td>${f(r.paid)}</td><td class="${r.bal<0?"neg":"pos"}">${f(r.bal)}</td></tr>`).join("")}</table></div></div>`};
+function memberView(){
+  const m=S.members[0];if(!m)return"<p>লোড হচ্ছে…</p>";const L=ledger(m),g=S.sum||{},cur=L.rows.find(r=>r.ym==nowYM)||{due:0,paid:0};
+  if(S.tab=="hist")return ledTable(m);if(S.tab=="grp")return commonList();
+  return`<div class="grid"><div class="card"><div class="k">আমার ব্যালেন্স</div><div class="v ${L.bal<0?"neg":"pos"}">৳${f(Math.abs(L.bal))}</div><div class="k">${L.bal<0?"বকেয়া":L.bal>0?"অগ্রিম/ক্রেডিট":"পরিষ্কার"}</div></div>
+  <div class="card"><div class="k">এই মাস (${lab(nowYM)})</div><div class="v">৳${f(cur.paid)} / ${f(cur.due)}</div><div class="k">জমা / প্রযোজ্য</div></div>
+  <div class="card"><div class="k">গ্রুপ তহবিল ব্যালেন্স</div><div class="v">৳${f(g.balance)}</div></div>
+  <div class="card"><div class="k">সদস্য সংখ্যা</div><div class="v">${f(g.members)}</div></div>
+  <div class="card"><div class="k">মোট জমা</div><div class="v pos">৳${f(g.totalIn)}</div></div>
+  <div class="card"><div class="k">মোট খরচ</div><div class="v neg">৳${f(g.totalOut)}</div></div></div>
+  <div class="card"><button data-act="pick">🔄 নতুন ডেটা ফাইল আমদানি (আপডেট)</button><p class="k">ডেটার সময়: ${S.stamp||""}</p></div><p class="k" style="text-align:center">বর্তমান মাসিক চাঁদা: ৳${f(rateAt(m,nowYM))}</p>`}
+const opts=()=>S.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join("");
+function adminView(){
+  const t=S.tab;
+  if(t=="home"){const o=summary();return`<div class="grid"><div class="card"><div class="k">তহবিল ব্যালেন্স</div><div class="v">৳${f(o.balance)}</div></div><div class="card"><div class="k">মোট জমা</div><div class="v pos">৳${f(o.totalIn)}</div></div><div class="card"><div class="k">মোট খরচ</div><div class="v neg">৳${f(o.totalOut)}</div></div><div class="card"><div class="k">সদস্য</div><div class="v">${f(o.members)}</div></div></div>
+  <div class="card" style="margin-top:12px"><h3>সদস্যদের অবস্থা</h3><div class="tbl"><table><tr><th>নাম</th><th>হার</th><th>ব্যালেন্স</th></tr>${S.members.map(m=>{const b=ledger(m).bal;return`<tr><td>${m.name}</td><td>${f(rateAt(m,nowYM))}</td><td class="${b<0?"neg":"pos"}">${f(b)}</td></tr>`}).join("")||"<tr><td>প্রথমে 'টুলস' ট্যাব থেকে এক্সেলের ডেটা ইমপোর্ট করুন</td></tr>"}</table></div></div>`}
+  if(t=="pay")return`<div class="card"><h3>মাসিক চাঁদা জমা</h3><select id="pm">${opts()}</select><input id="py" type="month" value="${nowYM}"><input id="pa" type="number" placeholder="টাকা"><input id="pd" type="date" value="${today}"><select id="pt"><option>বিকাশ</option><option>নগদ</option><option>ব্যাংক</option><option>হাতে নগদ</option></select><input id="pn" placeholder="মন্তব্য"><button class="pri" data-act="pay">সংরক্ষণ</button></div>
+  <div class="card"><h3>সাম্প্রতিক জমা</h3><div class="tbl"><table>${S.tx.filter(x=>x.kind=="pay").sort((a,b)=>(b.date||"")>(a.date||"")?1:-1).slice(0,15).map(x=>`<tr><td>${x.date}</td><td>${nameOf(x.memberId)}</td><td>${lab(x.ym)}</td><td>${f(x.amount)}</td><td><button class="sm" data-del="tx/${x.id}">✕</button></td></tr>`).join("")}</table></div></div>`;
+  if(t=="com")return`<div class="card"><h3>অতিরিক্ত জমা / খরচ</h3><select id="ck"><option value="extra">অতিরিক্ত তহবিল (জমা)</option><option value="expense">খরচ</option></select><input id="cd" type="date" value="${today}"><input id="ct" placeholder="বিবরণ / দাতার নাম"><input id="ca" type="number" placeholder="টাকা"><button class="pri" data-act="com">সংরক্ষণ</button></div>`+commonList();
+  if(t=="wv")return`<div class="card"><h3>ব্যক্তিগত মওকুফ</h3><select id="wm">${opts()}</select><input id="wy" type="month" value="${nowYM}"><input id="wa" type="number" placeholder="মওকুফের পরিমাণ"><button class="pri" data-act="wv">সংরক্ষণ</button></div>
+  <div class="card"><h3>পুরো গ্রুপের মাস মওকুফ</h3><input id="gy" type="month" value="${nowYM}"><button class="pri" data-act="gw">সংরক্ষণ</button><p class="k">মওকুফ হওয়া মাস: ${S.common.filter(c=>c.kind=="gwaiver").map(c=>lab(c.ym)+` <button class="sm" data-del="common/${c.id}">✕</button>`).join(", ")||"নেই"}</p></div>`;
+  if(t=="mem")return`<div class="card"><h3>নতুন সদস্য ও লগইন</h3><input id="nn" placeholder="নাম"><input id="np" placeholder="মোবাইল"><input id="nj" type="month" value="${nowYM}"><input id="nr" type="number" placeholder="মাসিক চাঁদা"><input id="ni" placeholder="লগইন আইডি (ইংরেজি, যেমন sabbir)"><input id="nw" placeholder="পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)"><button class="pri" data-act="mem">যোগ করুন</button></div>
+  ${S.members.map(m=>`<div class="card"><b>${m.name}</b> <span class="tag">${m.loginId?"আইডি: "+m.loginId+" • পাস: "+m.pw:"লগইন নেই"}</span><br><span class="k">যোগদান ${lab(m.join)} • চাঁদা ৳${f(rateAt(m,nowYM))}</span><br><button class="sm" data-rate="${m.id}">হার পরিবর্তন</button> <button class="sm" data-login="${m.id}">${m.loginId?"নতুন লগইন":"লগইন তৈরি"}</button> <button class="sm" data-view="${m.id}">হিসাব</button> <button class="sm" data-send="${m.id}">📤 পাঠান</button></div>`).join("")}${S.viewM?ledTable(S.members.find(m=>m.id==S.viewM)):""}`;
+  if(t=="tool")return`<div class="card"><h3>শুরুর ডেটা (একবারই)</h3><p class="k">আপনার কাছে থাকা initial-data.json ফাইলটি বেছে নিন।</p><button class="pri" data-act="restore">📂 শুরুর ডেটা ফাইল লোড করুন</button></div>
+  <div class="card"><h3>ব্যাকআপ</h3><p class="k">ফোন বদল বা ডেটা মুছে গেলে ব্যাকআপ থেকে ফেরত আনা যাবে। নিয়মিত ব্যাকআপ রাখুন।</p><button data-act="backup">💾 ব্যাকআপ ফাইল তৈরি/শেয়ার</button><button data-act="restore">♻️ ব্যাকআপ থেকে ফেরত আনুন</button></div>
+  <div class="card"><h3>অ্যাডমিন আইডি/পাসওয়ার্ড বদল</h3><button data-act="chpw">বদলান</button></div>`}
+
+function render(){
+  const A=$("#app");
+  if(!S.user){A.innerHTML=`<div class="login card"><h2>💰 গ্রুপ তহবিল</h2><input id="li" placeholder="আইডি" autocapitalize="none"><input id="lp" type="password" placeholder="পাসওয়ার্ড"><button class="pri" data-act="login">লগইন</button><div class="msg">${S.err}</div><hr><button data-act="pick">📥 ডেটা ফাইল আমদানি (সদস্যদের জন্য)</button></div>`;return}
+  const tabs=S.admin?[["home","📊","সারাংশ"],["pay","➕","জমা"],["com","🧾","খরচ/অতিরিক্ত"],["wv","🎁","মওকুফ"],["mem","👥","সদস্য"],["tool","⚙️","টুলস"]]:[["home","🏠","আমার হিসাব"],["hist","📅","মাসওয়ারি"],["grp","👥","গ্রুপ"]];
+  const keep=document.activeElement&&document.activeElement.id;
+  A.innerHTML=`<header><b>💰 গ্রুপ তহবিল ${S.admin?"(অ্যাডমিন)":""}</b><button data-act="out">বের হই</button></header><main>${S.err?`<p class="msg">${S.err}</p>`:""}${S.admin?adminView():memberView()}</main><nav>${tabs.map(t=>`<button class="${S.tab==t[0]?"on":""}" data-tab="${t[0]}">${t[1]}<br>${t[2]}</button>`).join("")}</nav>`}
+
+// ---------- actions ----------
+const v=id=>($("#"+id)||{}).value,clean=s=>s.trim().toLowerCase().replace(/[^a-z0-9_.-]/g,"");
+const A={
+  async login(){const i=clean(v("li")),p=v("lp"),a=DB.admin||{u:"mamun",h:ADMIN_H};S.err="";
+    if(i==a.u){if(await sha("fund:"+i+":"+p)==a.h){S.admin=true;S.user=i;S.members=DB.members;S.tx=DB.tx;S.common=DB.common;S.tab="home"}else S.err="আইডি বা পাসওয়ার্ড ভুল";render();return}
+    const t=localStorage["pkg_"+i];if(!t){S.err="এই ফোনে আপনার ডেটা ফাইল নেই — নিচের বোতাম দিয়ে ফাইলটি আমদানি করুন";render();return}
+    try{open_(await dec(t.split(":")[2],p),p)}catch(e){S.err="আইডি বা পাসওয়ার্ড ভুল"}render()},
+  out(){Object.assign(S,{user:null,admin:false,members:[],tx:[],common:[],sum:null,pw:null,err:""});render()},
+  pick(){S.pick="pkg";$("#fi").click()},restore(){S.pick="restore";$("#fi").click()},
+  pay(){if(!v("pa"))return;DB.tx.push({id:uid(),kind:"pay",memberId:v("pm"),ym:v("py"),amount:+v("pa"),date:v("pd"),method:v("pt"),note:v("pn")});commit()},
+  com(){if(!v("ca"))return;DB.common.push({id:uid(),kind:v("ck"),date:v("cd"),title:v("ct"),amount:+v("ca")});commit()},
+  wv(){if(!v("wa"))return;DB.tx.push({id:uid(),kind:"waiver",memberId:v("wm"),ym:v("wy"),amount:+v("wa")});commit()},
+  gw(){DB.common.push({id:uid(),kind:"gwaiver",ym:v("gy")});commit()},
+  mem(){if(!v("nn")||!v("nr"))return alert("নাম ও চাঁদা দিন");const m={id:uid(),name:v("nn"),phone:v("np"),join:v("nj"),rate0:+v("nr"),changes:[]};
+    const i=clean(v("ni")),p=v("nw");if(i){if(p.length<4||DB.members.some(x=>x.loginId==i))return alert("আইডি আগে নেওয়া বা পাসওয়ার্ড ছোট");m.loginId=i;m.pw=p}
+    DB.members.push(m);commit()},
+  backup(){share("fund-backup-"+today+".json",JSON.stringify(DB),"application/json")},
+  async chpw(){const u=clean(prompt("নতুন অ্যাডমিন আইডি")||""),p=u&&prompt("নতুন পাসওয়ার্ড");if(u&&p){DB.admin={u,h:await sha("fund:"+u+":"+p)};persist();alert("বদলেছে")}}};
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button");if(!t)return;const d=t.dataset;
+  try{
+    if(d.tab){S.tab=d.tab;S.viewM=null;render()}
+    else if(d.act)await A[d.act]();
+    else if(d.del){if(confirm("মুছে ফেলবেন?")){const[c,id]=d.del.split("/");DB[c]=DB[c].filter(x=>x.id!=id);commit()}}
+    else if(d.view){S.viewM=d.view;render()}
+    else if(d.rate){const m=DB.members.find(x=>x.id==d.rate),y=prompt("কোন মাস থেকে নতুন হার? (YYYY-MM, যেমন 2027-01)",nowYM),r=y&&prompt("নতুন মাসিক চাঁদা (টাকা)");if(y&&r){m.changes.push({from:y,rate:+r});commit()}}
+    else if(d.login){const m=DB.members.find(x=>x.id==d.login),i=clean(prompt("লগইন আইডি (ইংরেজি/সংখ্যা)")||""),p=i&&prompt("পাসওয়ার্ড (কমপক্ষে ৪ অক্ষর)");
+      if(i&&p&&p.length>=4){if(DB.members.some(x=>x.loginId==i&&x.id!=m.id))return alert("এই আইডি আগে নেওয়া");m.loginId=i;m.pw=p;commit()}}
+    else if(d.send){const m=DB.members.find(x=>x.id==d.send);if(!m.loginId)return alert("আগে লগইন তৈরি করুন");
+      const mm={...m};delete mm.pw;const o={m:mm,tx:DB.tx.filter(x=>x.memberId==m.id),common:DB.common,sum:summary(),stamp:new Date().toLocaleString("bn-BD")};
+      await share(m.loginId+"-fund.txt","FUND1:"+m.loginId+":"+await enc(o,m.pw),"text/plain")}
+  }catch(err){alert(err.message)}});
+document.addEventListener("change",async e=>{
+  if(e.target.id!="fi"||!e.target.files[0])return;const t=(await e.target.files[0].text()).trim();e.target.value="";
+  try{
+    if(S.pick=="restore"){const d=JSON.parse(t);if(!d.members||!confirm("বর্তমান সব ডেটা মুছে ব্যাকআপ বসবে। নিশ্চিত?"))return;DB=d;commit();return}
+    const[h,id,pl]=t.split(":");if(h!="FUND1"||!pl)throw 0;
+    if(S.user&&!S.admin){if(id!=S.user)throw 0;const d=await dec(pl,S.pw);localStorage["pkg_"+id]=t;open_(d,S.pw);alert("ডেটা আপডেট হয়েছে")}
+    else{localStorage["pkg_"+id]=t;S.err="";alert("ফাইল সংরক্ষিত হয়েছে। এখন আইডি ও পাসওয়ার্ড দিয়ে লগইন করুন")}
+    render()
+  }catch(x){alert("ফাইলটি সঠিক নয় বা আপনার পাসওয়ার্ডের সাথে মিলছে না")}});
+document.addEventListener("keydown",e=>{if(e.key=="Enter"&&!S.user)A.login()});
+if("serviceWorker"in navigator){navigator.serviceWorker.register("sw.js");let r;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(r)return;r=1;if(sessionStorage.sw)location.reload();sessionStorage.sw=1})}
+render();
+</script></body></html>
