@@ -3,8 +3,8 @@
 <link rel="manifest" href="manifest.json"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
 <title>গ্রুপ তহবিল</title>
 <style>
-:root{--p:#0f766e;--bg:#f1f5f4;--c:#fff;--t:#1f2937;--m:#6b7280;--g:#15803d;--r:#b91c1c;--b:#e5e7eb}
-@media(prefers-color-scheme:dark){:root{--bg:#0f1716;--c:#17211f;--t:#e5e7eb;--m:#9ca3af;--b:#2a3836;--g:#4ade80;--r:#f87171}}
+:root{--p:#0f766e;--bg:#f1f5f4;--c:#fff;--t:#1f2937;--m:#6b7280;--g:#15803d;--r:#b91c1c;--b:#e5e7eb;--bd:#b8c4c0}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1716;--c:#17211f;--t:#e5e7eb;--m:#9ca3af;--b:#2a3836;--bd:#4a615c;--g:#4ade80;--r:#f87171}}
 *{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,"Noto Sans Bengali",sans-serif;background:var(--bg);color:var(--t);padding-bottom:70px}
 header{background:var(--p);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
 header b{font-size:17px}header button{background:#ffffff33;color:#fff;border:0;border-radius:8px;padding:6px 12px}
@@ -15,7 +15,7 @@ main{max-width:760px;margin:auto;padding:12px}
 h3{margin:0 0 8px;font-size:15px}
 input,select,button,textarea{font:inherit;padding:9px;border:1px solid var(--b);border-radius:8px;background:var(--c);color:var(--t);width:100%;margin:3px 0}
 button.pri{background:var(--p);color:#fff;border:0;font-weight:600}button.sm{width:auto;padding:3px 9px;font-size:12px}
-.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--b);text-align:left;white-space:nowrap}
+.tbl{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px;border:1px solid var(--bd)}th,td{padding:6px 8px;border:1px solid var(--bd);text-align:left;white-space:nowrap}th{background:var(--b)}
 nav{position:fixed;bottom:0;left:0;right:0;background:var(--c);border-top:1px solid var(--b);display:flex;overflow-x:auto;z-index:5}
 nav button{flex:1;min-width:76px;border:0;border-radius:0;margin:0;background:none;font-size:12px;padding:10px 4px}nav button.on{color:var(--p);font-weight:700;border-top:3px solid var(--p)}
 body{overscroll-behavior-y:contain;-webkit-tap-highlight-color:transparent}button:active{opacity:.7}.off{background:#b45309;color:#fff;text-align:center;font-size:12px;padding:4px}
@@ -27,8 +27,7 @@ import{initializeApp,deleteApp}from"https://www.gstatic.com/firebasejs/10.12.2/f
 import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserWithEmailAndPassword,updatePassword,reauthenticateWithCredential,EmailAuthProvider}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import{initializeFirestore,persistentLocalCache,collection,doc,getDoc,setDoc,deleteDoc,onSnapshot,query,where,writeBatch}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ====== ধাপ ১: নিচের cfg-তে আপনার Firebase কনফিগ বসান (README দেখুন) ======
-const cfg={apiKey:"AIzaSyDm9EhPGyPtMglKbkqwi7PRae86X3tGJgA",authDomain:"fundapp-4f293.firebaseapp.com",projectId:"fundapp-4f293",appId:"1:691203822442:web:dc57e69671219bb0854b13"};
+import{cfg}from"./config.js"; // Firebase সেটিং config.js ফাইলে থাকে
 const ADMIN="mamun@fund.app";
 const app=initializeApp(cfg),auth=getAuth(app),db=initializeFirestore(app,{localCache:persistentLocalCache()});
 const MN=["জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল","মে","জুন","জুলাই","আগস্ট","সেপ্টেম্বর","অক্টোবর","নভেম্বর","ডিসেম্বর"];
@@ -88,7 +87,7 @@ const MP=(id,val)=>{const[y,m]=(val||nowYM).split("-"),ys=[];for(let i=2020;i<=+
 const mv=id=>v(id+"y")+"-"+v(id+"m");
 const grp=o=>[["তহবিল ব্যালেন্স",o.balance,""],["মোট জমা (সর্বমোট)",o.totalIn,"pos"],["মোট মাসিক চাঁদা (সর্বমোট)",o.monthly,""],["মোট অতিরিক্ত তহবিল (সর্বমোট)",o.extra,""],["মোট খরচ (সর্বমোট)",o.totalOut,"neg"],["এই মাসের মোট জমা",o.thisMonth,""],["মোট বকেয়া (সব সদস্য)",o.due,"neg"]].map(([k,x,c])=>`<div class="card"><div class="k">${k}</div><div class="v ${c}">৳${f(x)}</div></div>`).join("")+`<div class="card"><div class="k">সদস্য সংখ্যা</div><div class="v">${f(o.members)}</div></div>`;
 
-const TYPES=[["","সব ধরন"],["pay","মাসিক জমা"],["adv","অগ্রিম জমা"],["due","প্রযোজ্য (ডেবিট)"],["waiver","মওকুফ"],["extra","অতিরিক্ত তহবিল"],["expense","খরচ"]];
+const TYPES=[["","সব ধরন"],["pay","মাসিক জমা"],["adv","অগ্রিম জমা"],["due","প্রযোজ্য (ডেবিট)"],["waiver","ব্যক্তিগত মওকুফ"],["gwaiver","গ্রুপের মাস মওকুফ"],["extra","অতিরিক্ত তহবিল"],["expense","খরচ"]];
 function rows(){const R=[];
   S.tx.forEach(x=>{if(x.kind=="pay"){const adv=x.ym>(x.date||x.ym).slice(0,7);R.push({id:x.id,col:"tx",k:adv?"adv":"pay",date:x.date||x.ym+"-01",ym:x.ym,who:x.memberId,cr:x.amount,dr:0,txt:(adv?"অগ্রিম জমা — ":"মাসিক চাঁদা — ")+lab(x.ym)+(x.method?" ("+x.method+")":""),note:x.note||""})}
     else if(x.kind=="waiver")R.push({id:x.id,col:"tx",k:"waiver",date:x.ym+"-01",ym:x.ym,who:x.memberId,cr:0,dr:0,wv:x.amount,txt:"মওকুফ — "+lab(x.ym),note:""})});
@@ -96,7 +95,7 @@ function rows(){const R=[];
     else R.push({id:c.id,col:"common",k:c.kind,date:d,ym:d.slice(0,7),who:null,cr:c.kind=="extra"?c.amount:0,dr:c.kind=="expense"?c.amount:0,txt:"[গ্রুপ] "+(c.title||(c.kind=="extra"?"অতিরিক্ত জমা":"খরচ")),note:""})});
   S.members.forEach(m=>ledger(m).rows.forEach(r=>{if(r.due>0)R.push({k:"due",date:r.ym+"-01",ym:r.ym,who:m.id,cr:0,dr:r.due,txt:"মাসিক চাঁদা প্রযোজ্য — "+lab(r.ym),note:""})}));
   return R}
-const flt=(R,F)=>R.filter(r=>(!F.m||!S.admin||r.who==F.m)&&(!F.y||(r.ym||"").slice(0,4)==F.y)&&(!F.mo||(r.ym||"").slice(5)==F.mo)&&(!F.t||r.k==F.t||(F.t=="waiver"&&r.k=="gwaiver"))&&(!F.q||(r.txt+" "+r.note).includes(F.q))).sort((a,b)=>a.date<b.date?1:-1);
+const flt=(R,F)=>R.filter(r=>(!F.m||!S.admin||r.who==F.m||r.k=="gwaiver")&&(!F.y||(r.ym||"").slice(0,4)==F.y)&&(!F.mo||(r.ym||"").slice(5)==F.mo)&&(!F.t||r.k==F.t)&&(!F.q||(r.txt+" "+r.note).includes(F.q))).sort((a,b)=>a.date<b.date?1:-1);
 function filterUI(admin){const ys=new Set([nowYM.slice(0,4)]);rows().forEach(r=>r.ym&&ys.add(r.ym.slice(0,4)));
   const FS=(k,l,o)=>F(l,`<select data-f="${k}">${o.map(([a,b])=>`<option value="${q(a)}"${a==S.fl[k]?" selected":""}>${b}</option>`).join("")}</select>`);
   return`<div class="card"><h3>🔎 ফিল্টার</h3>${admin?FS("m","সদস্য",[["","সব সদস্য"],...S.members.map(m=>[m.id,m.name])]):""}<div class="g2">${FS("y","বছর",[["","সব বছর"],...[...ys].sort().reverse().map(y=>[y,(+y).toLocaleString("bn-BD",{useGrouping:false})])])}${FS("mo","মাস",[["","সব মাস"],...MN.map((n,i)=>[String(i+1).padStart(2,"0"),n])])}</div>
@@ -105,7 +104,7 @@ function stmt(admin){const R=flt(rows(),S.fl),pays=sum(R.filter(r=>r.k=="pay"||r
   const box=[["জমা",pays,"pos"],["প্রযোজ্য (ডেবিট)",due,""],["মওকুফ",wv,""],["অতিরিক্ত তহবিল",ex,"pos"],["খরচ",out,"neg"]].filter(x=>x[1]).map(([k,x,c])=>`<div class="card"><div class="k">${k}</div><div class="v ${c}">৳${f(x)}</div></div>`).join("");
   const ed={pay:"ep",adv:"ep",extra:"ec",expense:"ec",waiver:"ew",gwaiver:"eg"};
   return filterUI(admin)+`<div class="grid" style="margin-top:12px">${box||'<div class="card"><div class="k">এই ফিল্টারে কোনো টাকা নেই</div></div>'}</div><div class="card" style="margin-top:12px"><h3>${f(R.length)} টি এন্ট্রি</h3><div class="tbl"><table><tr><th>তারিখ</th>${admin?"<th>সদস্য</th>":""}<th>বিবরণ</th><th>ক্রেডিট</th><th>ডেবিট</th>${admin?"<th></th>":""}</tr>
-  ${R.slice(0,200).map(r=>`<tr><td>${r.k=="due"||r.k=="waiver"||r.k=="gwaiver"?lab(r.ym):r.date}</td>${admin?`<td>${r.who?nameOf(r.who):"গ্রুপ"}</td>`:""}<td>${r.txt}${r.k=="adv"?' <span class="tg">অগ্রিম</span>':""}${r.note?`<br><span class="k">${r.note}</span>`:""}</td><td class="pos">${r.cr?f(r.cr):r.wv?"মওকুফ "+f(r.wv):""}</td><td class="neg">${r.dr?f(r.dr):""}</td>${admin?`<td>${ed[r.k]?`<button class="sm" data-${ed[r.k]}="${r.id}">✏️</button> <button class="sm" data-del="${r.col}/${r.id}">✕</button>`:""}</td>`:""}</tr>`).join("")||"<tr><td>কিছু পাওয়া যায়নি</td></tr>"}</table></div>${R.length>200?'<p class="k">প্রথম ২০০টি দেখানো হচ্ছে — ফিল্টার ব্যবহার করুন</p>':""}</div>`}
+  ${R.slice(0,200).map(r=>`<tr><td>${r.k=="due"||r.k=="waiver"||r.k=="gwaiver"?lab(r.ym):r.date}</td>${admin?`<td>${r.who?nameOf(r.who):"গ্রুপ"}</td>`:""}<td>${r.txt}${r.k=="adv"?' <span class="tg">অগ্রিম</span>':""}${r.note?`<br><span class="k">${r.note}</span>`:""}</td><td class="pos">${r.cr?f(r.cr):r.wv?"মওকুফ "+f(r.wv):r.k=="gwaiver"?"সবার চাঁদা মওকুফ":""}</td><td class="neg">${r.dr?f(r.dr):""}</td>${admin?`<td>${ed[r.k]?`<button class="sm" data-${ed[r.k]}="${r.id}">✏️</button> <button class="sm" data-del="${r.col}/${r.id}">✕</button>`:""}</td>`:""}</tr>`).join("")||"<tr><td>কিছু পাওয়া যায়নি</td></tr>"}</table></div>${R.length>200?'<p class="k">প্রথম ২০০টি দেখানো হচ্ছে — ফিল্টার ব্যবহার করুন</p>':""}</div>`}
 function memberView(){
   const m=S.members[0];if(!m)return"<p>লোড হচ্ছে…</p>";const L=ledger(m),g=S.sum||{},cur=L.rows.find(r=>r.ym==nowYM)||{due:0,paid:0};
   if(S.tab=="hist")return ledTable(m);if(S.tab=="grp")return commonList();if(S.tab=="stmt")return stmt(false);if(S.tab=="me")return`<div class="card"><h3>${m.name}</h3><p class="k">আইডি: ${S.user.email.split("@")[0]}</p><button data-act="cpw">🔑 পাসওয়ার্ড বদলান</button>${S.inst?'<button data-act="install">📲 অ্যাপ ইনস্টল করুন</button>':""}<button class="dng" data-act="out">বের হই</button></div>`;
@@ -115,7 +114,7 @@ function memberView(){
 function adminView(){
   const t=S.tab;
   if(t=="home"){const o=summary();return`<div class="grid">${grp(o)}</div>
-  <div class="card" style="margin-top:12px"><h3>সদস্যদের অবস্থা</h3><div class="tbl"><table><tr><th>নাম</th><th>মাসিক হার</th><th>ব্যালেন্স</th></tr>${S.members.map(m=>{const b=ledger(m).bal;return`<tr><td>${m.name}</td><td>${f(rateAt(m,nowYM))}</td><td class="${b<0?"neg":"pos"}">${f(b)}</td></tr>`}).join("")||"<tr><td>প্রথমে 'টুলস' ট্যাব থেকে শুরুর ডেটা ফাইল লোড করুন</td></tr>"}</table></div></div>`}
+  <div class="card" style="margin-top:12px"><h3>সদস্যদের অবস্থা</h3><div class="tbl"><table><tr><th>নাম</th><th>মোবাইল</th><th>মাসিক হার</th><th>ব্যালেন্স</th></tr>${S.members.map(m=>{const b=ledger(m).bal;return`<tr><td>${m.name}</td><td>${m.phone||"-"}</td><td>${f(rateAt(m,nowYM))}</td><td class="${b<0?"neg":"pos"}">${f(b)}</td></tr>`}).join("")||"<tr><td>প্রথমে 'টুলস' ট্যাব থেকে শুরুর ডেটা ফাইল লোড করুন</td></tr>"}</table></div></div>`}
   if(t=="pay"){const e=S.tx.find(x=>x.id==S.ep)||{},ms=["বিকাশ","নগদ","ব্যাংক","হাতে নগদ"];if(e.method&&!ms.includes(e.method))ms.push(e.method);
     return`<div class="card"><h3>${e.id?"✏️ জমা সংশোধন":"➕ মাসিক চাঁদা জমা"}</h3>${F("কে টাকা দিয়েছেন",SEL("pm",S.members.map(m=>[m.id,m.name]),e.memberId))}
   ${F("কোন মাসের চাঁদা (যে মাসের হিসাবে জমা হবে)",MP("py",e.ym))}${F("টাকার পরিমাণ (৳)",`<input id="pa" type="number" inputmode="numeric" placeholder="যেমন: ২০০" value="${q(e.amount)}">`)}
@@ -138,7 +137,7 @@ function adminView(){
     <button class="pri" data-act="savemem">সংরক্ষণ</button><button data-act="cancel">বাতিল</button><button class="dng" data-act="delmem">🗑️ এই সদস্য ও তার সব জমা মুছুন</button></div>`:"";
     return edit+`<div class="card"><h3>➕ নতুন সদস্য ও লগইন</h3>${F("নাম",`<input id="nn" placeholder="সদস্যের পুরো নাম">`)}${F("মোবাইল নম্বর (ঐচ্ছিক)",`<input id="np" placeholder="01XXXXXXXXX">`)}${F("যোগদানের মাস (এই মাস থেকে চাঁদা গণনা)",MP("nj"))}
     ${F("মাসিক চাঁদা (৳)",`<input id="nr" type="number" inputmode="numeric" placeholder="যেমন: ২০০">`)}${F("লগইন আইডি (ইংরেজি/সংখ্যা, যেমন sabbir)",`<input id="ni" autocapitalize="none">`)}${F("পাসওয়ার্ড (কমপক্ষে ৬ অক্ষর)",`<input id="nw">`)}<button class="pri" data-act="mem">যোগ করুন</button></div>
-  ${S.members.map(m=>`<div class="card"><b>${m.name}</b> <span class="tag">${m.loginId?"আইডি: "+m.loginId:"লগইন নেই"}</span><br><span class="k">যোগদান ${lab(m.join)} • চাঁদা ৳${f(rateAt(m,nowYM))}</span><br><button class="sm" data-emem="${m.id}">✏️ সংশোধন</button> <button class="sm" data-login="${m.id}">${m.loginId?"নতুন লগইন/পাসওয়ার্ড রিসেট":"লগইন তৈরি"}</button> <button class="sm" data-view="${m.id}">হিসাব</button></div>`).join("")}${S.viewM?ledTable(S.members.find(m=>m.id==S.viewM)):""}`}
+  ${S.members.map(m=>`<div class="card"><b>${m.name}</b> <span class="tag">${m.loginId?"আইডি: "+m.loginId:"লগইন নেই"}</span><br><span class="k">যোগদান ${lab(m.join)} • চাঁদা ৳${f(rateAt(m,nowYM))}</span><br>${m.phone?`📞 <a href="tel:${q(m.phone)}" style="color:var(--p)">${m.phone}</a>`:'<span class="k">📞 মোবাইল নম্বর নেই (✏️ সংশোধন থেকে দিন)</span>'}<br><button class="sm" data-emem="${m.id}">✏️ সংশোধন</button> <button class="sm" data-login="${m.id}">${m.loginId?"নতুন লগইন/পাসওয়ার্ড রিসেট":"লগইন তৈরি"}</button> <button class="sm" data-view="${m.id}">হিসাব</button></div>`).join("")}${S.viewM?ledTable(S.members.find(m=>m.id==S.viewM)):""}`}
   if(t=="led")return stmt(true);
   if(t=="tool")return`<div class="card"><h3>ডেটা ইমপোর্ট (শুরুর ডেটা / ব্যাকআপ)</h3><p class="k">initial-data.json বা আগের ব্যাকআপ ফাইল বেছে নিন। একই ফাইল আবার দিলে ডুপ্লিকেট হয় না।</p><button class="pri" data-act="restore">📂 ফাইল বেছে ইমপোর্ট করুন</button></div>
   <div class="card"><h3>ব্যাকআপ</h3><p class="k">পুরো ডেটার একটি কপি ফোনে সংরক্ষণ করুন।</p><button data-act="backupdl">⬇️ ব্যাকআপ ডাউনলোড</button></div>
@@ -154,7 +153,7 @@ function render(){
 // ---------- actions ----------
 const v=id=>($("#"+id)||{}).value;
 const A={
-  async login(){const i=clean(v("li")),p=v("lp");S.err="";try{await signInWithEmailAndPassword(auth,email(i),p);localStorage.lastId=i}catch(e){S.err=navigator.onLine?"আইডি বা পাসওয়ার্ড ভুল":"ইন্টারনেট প্রয়োজন";render()}},
+  async login(){const i=clean(v("li")),p=v("lp");S.err="";try{await signInWithEmailAndPassword(auth,email(i),p);localStorage.lastId=i}catch(e){const c=e.code||"",H={"auth/invalid-credential":"আইডি বা পাসওয়ার্ড ভুল","auth/wrong-password":"আইডি বা পাসওয়ার্ড ভুল","auth/user-not-found":"আইডি বা পাসওয়ার্ড ভুল","auth/network-request-failed":"ইন্টারনেট সংযোগ নেই","auth/operation-not-allowed":"Firebase-এ Email/Password চালু করা হয়নি","auth/invalid-api-key":"config.js-এ apiKey ভুল","auth/api-key-not-valid.-please-pass-a-valid-api-key.":"config.js-এ apiKey ভুল","auth/too-many-requests":"অনেকবার ভুল হয়েছে, কিছুক্ষণ পরে চেষ্টা করুন"};S.err=(H[c]||"লগইন হয়নি")+" ["+(c||e.message)+"]";render()}},
   out(){signOut(auth)},
   async install(){if(S.inst){S.inst.prompt();S.inst=null;render()}},
   freset(){S.fl={m:"",y:nowYM.slice(0,4),mo:"",t:"",q:""};render()},
