@@ -28,7 +28,7 @@ import{getAuth,signInWithEmailAndPassword,signOut,onAuthStateChanged,createUserW
 import{initializeFirestore,persistentLocalCache,collection,doc,getDoc,setDoc,deleteDoc,onSnapshot,query,where,writeBatch}from"https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ====== ধাপ ১: নিচের cfg-তে আপনার Firebase কনফিগ বসান (README দেখুন) ======
-const cfg={apiKey:"YOUR_API_KEY",authDomain:"YOUR_PROJECT.firebaseapp.com",projectId:"YOUR_PROJECT",appId:"YOUR_APP_ID"};
+const cfg={apiKey:"AIzaSyDm9EhPGyPtMglKbkqwi7PRae86X3tGJgA",authDomain:"fundapp-4f293.firebaseapp.com",projectId:"fundapp-4f293",appId:"1:691203822442:web:dc57e69671219bb0854b13"};
 const ADMIN="mamun@fund.app";
 const app=initializeApp(cfg),auth=getAuth(app),db=initializeFirestore(app,{localCache:persistentLocalCache()});
 const MN=["জানুয়ারি","ফেব্রুয়ারি","মার্চ","এপ্রিল","মে","জুন","জুলাই","আগস্ট","সেপ্টেম্বর","অক্টোবর","নভেম্বর","ডিসেম্বর"];
