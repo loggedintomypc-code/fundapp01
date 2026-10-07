@@ -1,0 +1,56 @@
+name: Build APK
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Prepare web files
+        run: |
+          mkdir www
+          cp index.html sw.js manifest.json icon-192.png icon-512.png www/
+          npm install
+          npx cap add android
+      - name: App icon
+        continue-on-error: true
+        run: |
+          pip install pillow
+          python3 - <<'PY'
+          import glob,os
+          from PIL import Image
+          src=Image.open("icon-512.png").convert("RGBA")
+          for f in glob.glob("android/app/src/main/res/mipmap-*/ic_launcher*.png"):
+              n=os.path.basename(f)
+              sz=Image.open(f).size[0]
+              im=src.resize((sz,sz))
+              if "foreground" in n:
+                  c=Image.new("RGBA",(sz,sz),(15,118,110,255)); k=int(sz*0.62)
+                  c.paste(src.resize((k,k)),((sz-k)//2,(sz-k)//2)); im=c
+              im.save(f)
+          PY
+      - name: Build
+        run: |
+          npx cap sync android
+          cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Rename
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk GroupFund.apk
+      - name: Publish download link
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-${{ github.run_number }}
+          name: Group Fund APK ${{ github.run_number }}
+          files: GroupFund.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GroupFund-APK
+          path: GroupFund.apk
