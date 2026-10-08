@@ -6,4 +6,4 @@ export const cfg={
   appId:"1:691203822442:web:dc57e69671219bb0854b13"
 };
 // অ্যাডমিনদের ইমেইল (আইডি@fund.app, ছোট হাতের অক্ষরে)। Firebase Rules-এও একই তালিকা থাকতে হবে
-export const admins=["mamun@fund.app","shorif@fund.app"];
+export const admins=["mamun@fund.app"];
