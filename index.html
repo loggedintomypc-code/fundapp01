@@ -114,7 +114,7 @@ function stmt(admin){const R=flt(rows(),S.fl),sm=(k,x)=>sum(R.filter(r=>r.k==k),
 function memberView(){
   const m=S.members[0];if(!m)return"<p>লোড হচ্ছে…</p>";const L=ledger(m),g=S.sum||{},cur=L.rows.find(r=>r.ym==nowYM)||{due:0,paid:0};
   if(S.tab=="hist")return ledTable(m);if(S.tab=="grp")return commonList();if(S.tab=="stmt")return stmt(false);if(S.tab=="me")return`<div class="card"><h3>${m.name}</h3><p class="k">আইডি: ${S.user.email.split("@")[0]}</p><button data-act="cpw">🔑 পাসওয়ার্ড বদলান</button>${S.inst?'<button data-act="install">📲 অ্যাপ ইনস্টল করুন</button>':""}<button class="dng" data-act="out">বের হই</button></div>`;
-  return`<div class="grid"><div class="card"><div class="k">আমার বকেয়া</div><div class="v ${L.bal<0?"neg":"pos"}">৳${f(Math.abs(L.bal))}</div><div class="k">${L.bal<0?"বকেয়া":L.bal>0?"অগ্রিম/ক্রেডিট":"পরিষ্কার"}</div></div>
+  return`<div class="grid"><div class="card"><div class="k">আমার ব্যালেন্স</div><div class="v ${L.bal<0?"neg":"pos"}">৳${f(Math.abs(L.bal))}</div><div class="k">${L.bal<0?"বকেয়া":L.bal>0?"অগ্রিম/ক্রেডিট":"পরিষ্কার"}</div></div>
   <div class="card"><div class="k">আমার এই মাস (${lab(nowYM)})</div><div class="v">৳${f(cur.paid)} / ${f(cur.due)}</div><div class="k">জমা / দেয় চাঁদা</div></div>${grp(g)}</div>
   <p class="k" style="text-align:center;margin-top:12px">🟢 ডেটা স্বয়ংক্রিয়ভাবে হালনাগাদ হয়${S.sum&&S.sum.updated?" • সারাংশ: "+new Date(S.sum.updated).toLocaleString("bn-BD"):""}</p><p class="k" style="text-align:center">আমার বর্তমান মাসিক চাঁদা: ৳${f(rateAt(m,nowYM))}</p>`}
 function adminView(){
